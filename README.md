@@ -37,7 +37,7 @@ A simple script to install and manage VNC with your choice of desktop environmen
 
 ## Installation
 
-Run the following one-liner on a fresh VPS as **root** or using `sudo`:
+Run the following one-liner as **root** or using `sudo`:
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/Atelloblue/VNC-Setup/refs/heads/main/vnc-setup.sh)
