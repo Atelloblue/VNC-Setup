@@ -1,23 +1,26 @@
 #!/bin/bash
 # ================================
-# VNC Setup 1.0 - VNC & Desktop Installer
+# VNC Setup 2.1 - VNC & Desktop Installer
 # Interactive setup for VNC and Desktop Environments
 # Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon
 # ================================
 
-set -e
+set -euo pipefail
 
-# Colors for UI
+# --- Colors for UI ---
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 BLUE="\033[0;34m"
+YELLOW="\033[1;33m"
 NC="\033[0m"
 
 USER_HOME=$(eval echo "~$USER")
 VNC_DISPLAY=":1"
 VNC_PORT="5901"
+VNC_GEOMETRY="1920x1080"
+VNC_DEPTH="24"
 
-echo -e "${BLUE}=== VNC Setup 1.0 ===${NC}"
+echo -e "${BLUE}=== VNC Setup 2.1 ===${NC}"
 
 # --- Step 1: Update & Upgrade System ---
 echo -e "${BLUE}Step 1: Updating system...${NC}"
@@ -25,47 +28,61 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y software-properties-common
 echo -e "${GREEN}System updated.${NC}"
 
-# --- Step 2: Select Desktop Environment ---
-echo -e "${BLUE}Step 2: Select Desktop Environment:${NC}"
-PS3="Choose your desktop environment (1-6): "
-options=("GNOME" "XFCE" "LXDE" "MATE" "KDE" "Cinnamon")
-select opt in "${options[@]}"; do
-    case "$REPLY" in
-        1|"")
-            DE_NAME="GNOME"; DE_CMD="gnome-session"
-            sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
-            break
-            ;;
-        2)
-            DE_NAME="XFCE"; DE_CMD="startxfce4"
-            sudo apt install -y xfce4 xfce4-goodies dbus-x11
-            break
-            ;;
-        3)
-            DE_NAME="LXDE"; DE_CMD="startlxde"
-            sudo apt install -y lxde dbus-x11
-            break
-            ;;
-        4)
-            DE_NAME="MATE"; DE_CMD="mate-session"
-            sudo apt install -y mate-desktop-environment dbus-x11
-            break
-            ;;
-        5)
-            DE_NAME="KDE"; DE_CMD="startplasma-x11"
-            sudo apt install -y kde-plasma-desktop dbus-x11
-            break
-            ;;
-        6)
-            DE_NAME="Cinnamon"; DE_CMD="cinnamon-session"
-            sudo apt install -y cinnamon dbus-x11
-            break
-            ;;
-        *)
-            echo -e "${RED}Invalid choice. Please select 1-6.${NC}"
-            ;;
-    esac
-done
+# --- Step 2: Detect or Install Desktop Environment ---
+DE_DETECTED=$(echo "$XDG_CURRENT_DESKTOP" || true)
+if [[ -n "$DE_DETECTED" ]]; then
+    echo -e "${YELLOW}Detected desktop environment: $DE_DETECTED${NC}"
+    read -rp "Do you want to reinstall or change it? (y/n) [n]: " change_de
+    if [[ "$change_de" =~ ^[Yy]$ ]]; then
+        DE_DETECTED=""
+    fi
+fi
+
+if [[ -z "$DE_DETECTED" ]]; then
+    echo -e "${BLUE}Select Desktop Environment:${NC}"
+    PS3="Choose your desktop environment (1-6): "
+    options=("GNOME" "XFCE" "LXDE" "MATE" "KDE" "Cinnamon")
+    select opt in "${options[@]}"; do
+        case "$REPLY" in
+            1|"")
+                DE_NAME="GNOME"; DE_CMD="gnome-session"
+                sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
+                break
+                ;;
+            2)
+                DE_NAME="XFCE"; DE_CMD="startxfce4"
+                sudo apt install -y xfce4 xfce4-goodies dbus-x11
+                break
+                ;;
+            3)
+                DE_NAME="LXDE"; DE_CMD="startlxde"
+                sudo apt install -y lxde dbus-x11
+                break
+                ;;
+            4)
+                DE_NAME="MATE"; DE_CMD="mate-session"
+                sudo apt install -y mate-desktop-environment dbus-x11
+                break
+                ;;
+            5)
+                DE_NAME="KDE"; DE_CMD="startplasma-x11"
+                sudo apt install -y kde-plasma-desktop dbus-x11
+                break
+                ;;
+            6)
+                DE_NAME="Cinnamon"; DE_CMD="cinnamon-session"
+                sudo apt install -y cinnamon dbus-x11
+                break
+                ;;
+            *)
+                echo -e "${RED}Invalid choice. Please select 1-6.${NC}"
+                ;;
+        esac
+    done
+else
+    DE_NAME="$DE_DETECTED"
+    DE_CMD=$(command -v startx || echo "$DE_NAME")
+fi
 echo -e "${GREEN}Desktop Environment set to $DE_NAME.${NC}"
 
 # --- Step 3: Install TigerVNC ---
@@ -112,7 +129,7 @@ User=$USER
 PAMName=login
 PIDFile=$USER_HOME/.vnc/%H:%i.pid
 ExecStartPre=-/usr/bin/vncserver -kill :%i > /dev/null 2>&1
-ExecStart=/usr/bin/vncserver :%i -geometry 1920x1080 -depth 24 $LOCALHOST_ARG
+ExecStart=/usr/bin/vncserver :%i -geometry $VNC_GEOMETRY -depth $VNC_DEPTH $LOCALHOST_ARG
 ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
@@ -120,8 +137,8 @@ WantedBy=multi-user.target
 EOL"
     sudo systemctl daemon-reload
     sudo systemctl enable vncserver@1.service
-    echo -e "${GREEN}Systemd service created and enabled (server will start on boot).${NC}"
+    echo -e "${GREEN}Systemd service created and enabled.${NC}"
 fi
 
 echo -e "${BLUE}=== VNC Setup Complete ===${NC}"
-echo -e "${GREEN}To start the VNC server manually: vncserver $VNC_DISPLAY -geometry 1920x1080 -depth 24${NC}"
+echo -e "${GREEN}Start manually: vncserver $VNC_DISPLAY -geometry $VNC_GEOMETRY -depth $VNC_DEPTH${NC}"
