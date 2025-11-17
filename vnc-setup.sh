@@ -1,6 +1,6 @@
 #!/bin/bash
 # ================================
-# VNC Setup 1.1 - VNC & Desktop Installer
+# VNC Setup 1.0 - VNC & Desktop Installer
 # Interactive setup for VNC and Desktop Environments
 # Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon
 # ================================
