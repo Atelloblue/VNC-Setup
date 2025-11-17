@@ -67,6 +67,17 @@ declare -A DE_LIST=(
     ["Deepin"]="startdde"
 )
 
+declare -A DE_CMD_TO_PACKAGE=(
+    ["gnome-session"]="ubuntu-desktop gnome-session gdm3 dbus-x11"
+    ["startxfce4"]="xfce4 xfce4-goodies dbus-x11"
+    ["startlxde"]="lxde dbus-x11"
+    ["mate-session"]="mate-desktop-environment dbus-x11"
+    ["startplasma-x11"]="kde-plasma-desktop dbus-x11"
+    ["cinnamon-session"]="cinnamon dbus-x11"
+    ["budgie-desktop"]="ubuntu-budgie-desktop dbus-x11"
+    ["startdde"]="dde dbus-x11"
+)
+
 installed_de=""
 for de in "${!DE_LIST[@]}"; do
     if command -v "${DE_LIST[$de]}" &>/dev/null; then
@@ -87,12 +98,17 @@ if [[ -n "$installed_de" ]]; then
     case "$de_action" in
         1)
             echo "Reinstalling $installed_de..."
-            sudo apt install --reinstall -y "$installed_de"
+            sudo apt install --reinstall -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}
             ;;
         2)
             echo "Uninstalling $installed_de..."
-            sudo apt purge -y "$installed_de"
+            sudo apt purge -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}
             sudo apt autoremove -y
+            # Remove xstartup file if it exists
+            if [[ -f "$USER_HOME/.vnc/xstartup" ]]; then
+                rm -f "$USER_HOME/.vnc/xstartup"
+                echo -e "${GREEN}Removed .vnc/xstartup${NC}"
+            fi
             installed_de=""
             ;;
         3|"")
@@ -127,28 +143,28 @@ if [[ -z "$installed_de" ]]; then
         case "$REPLY" in
             1|"")
                 DE_NAME="GNOME"; DE_CMD="gnome-session"
-                sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             2)
                 DE_NAME="XFCE"; DE_CMD="startxfce4"
-                sudo apt install -y xfce4 xfce4-goodies dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             3)
                 DE_NAME="LXDE"; DE_CMD="startlxde"
-                sudo apt install -y lxde dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             4)
                 DE_NAME="MATE"; DE_CMD="mate-session"
-                sudo apt install -y mate-desktop-environment dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             5)
                 DE_NAME="KDE"; DE_CMD="startplasma-x11"
-                sudo apt install -y kde-plasma-desktop dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             6)
                 DE_NAME="Cinnamon"; DE_CMD="cinnamon-session"
-                sudo apt install -y cinnamon dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             7)
                 DE_NAME="Budgie"; DE_CMD="budgie-desktop"
-                sudo apt install -y ubuntu-budgie-desktop dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             8)
                 DE_NAME="Deepin"; DE_CMD="startdde"
-                sudo apt install -y dde dbus-x11; break;;
+                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}; break;;
             *)
                 echo -e "${RED}Invalid choice, please select 1-8.${NC}";;
         esac
