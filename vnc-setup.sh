@@ -20,32 +20,6 @@ VNC_PORT="5901"
 
 echo -e "${BLUE}=== VNC Setup: VNC & Desktop Installer ===${NC}"
 
-# --- Step 0: Check existing VNC sessions
-existing_vnc=$(vncserver -list 2>/dev/null | grep $VNC_DISPLAY || true)
-if [[ -n "$existing_vnc" ]]; then
-    echo -e "${YELLOW}Existing VNC session detected on $VNC_DISPLAY:${NC}"
-    echo "$existing_vnc"
-    echo "Choose an action:"
-    echo "  1) Start existing session"
-    echo "  2) Kill existing session"
-    echo "  3) Continue with setup"
-    read -rp "Enter choice [1-3, default 3]: " vnc_choice
-    case "$vnc_choice" in
-        1)
-            vncserver $VNC_DISPLAY
-            echo -e "${GREEN}VNC started on $VNC_DISPLAY${NC}"
-            exit 0
-            ;;
-        2)
-            vncserver -kill $VNC_DISPLAY || true
-            echo -e "${GREEN}Killed existing VNC session.${NC}"
-            ;;
-        *)
-            echo "Continuing setup..."
-            ;;
-    esac
-fi
-
 # --- Step 1: Update & Upgrade
 echo -e "${BLUE}Step 1: Updating system...${NC}"
 sudo apt update && sudo apt upgrade -y
