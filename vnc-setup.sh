@@ -97,7 +97,7 @@ for de in "${installed_des[@]}"; do
     DE_CMD="${DE_LIST[$de]}"
     echo -e "Managing $de:"
     echo "  1) Reinstall"
-    echo "  2) Uninstall"
+    echo "  2) Uninstall (remove binaries)"
     echo "  3) Restart"
     echo "  4) Stop (kill all DE processes)"
     read -rp "Enter choice [1-4, default 3]: " de_action
@@ -109,9 +109,13 @@ for de in "${installed_des[@]}"; do
             sudo apt install -y ${DE_PACKAGES[$DE_CMD]}
             ;;
         2)
-            echo "Purging $de completely..."
+            echo "Purging $de completely, removing binaries..."
             sudo apt purge -y ${DE_PACKAGES[$DE_CMD]} || true
             sudo apt autoremove -y
+            # Remove DE binaries explicitly
+            for bin in ${DE_PACKAGES[$DE_CMD]}; do
+                sudo rm -rf /usr/bin/$bin /usr/share/$bin 2>/dev/null || true
+            done
             if [[ -f "$USER_HOME/.vnc/xstartup" ]]; then
                 rm -f "$USER_HOME/.vnc/xstartup"
                 echo -e "${GREEN}Removed .vnc/xstartup${NC}"
