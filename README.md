@@ -2,7 +2,7 @@
 
 [![made-with-bash](https://img.shields.io/badge/-Made%20with%20Bash-1f425f.svg)](https://www.gnu.org/software/bash/)
 
-A simple script to install and manage VNC with your choice of desktop environment (GNOME, XFCE, LXDE, MATE, KDE, Cinnamon) on Ubuntu or Debian VPS.
+A simple script to install and manage **VNC** with your choice of desktop environment (GNOME, XFCE, LXDE, MATE, KDE, Cinnamon) on **Ubuntu** or **Debian** VPS.
 
 > This script is unofficial and is not affiliated with any Linux desktop project.
 
@@ -10,24 +10,25 @@ A simple script to install and manage VNC with your choice of desktop environmen
 
 ## Features
 
+- Detect and manage existing VNC servers (start, stop, remove).
+- Install **TigerVNC server** automatically if not present.
 - Choose your desktop environment: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon.
-- Detects existing VNC servers and lets you start, stop, or remove them.
-- Installs TigerVNC server automatically.
-- Sets up VNC password for access.
-- Configures VNC to start the selected desktop environment automatically.
-- Optional: configure VNC to start automatically on boot with systemd.
+- Set up VNC password for secure access.
+- Configure VNC to start the selected desktop environment automatically.
+- Optional: enable VNC to start automatically on boot via systemd.
 
 ---
 
 ## Supported Operating Systems
 
-| OS      | Version | Supported |
-| ------- | ------- | --------- |
-| Ubuntu  | 22.04   | 🟢        |
-| Ubuntu  | 24.04   | 🟢        |
-| Debian  | 10      | 🟠        |
-| Debian  | 11      | 🟠        |
-| Debian  | 12      | 🟠        |
+| OS      | Version |       |
+| ------- | ------- | ----- |
+| Ubuntu  | 23.04   | 🟠    |
+| Ubuntu  | 24.04   | 🟢    |
+| Ubuntu  | 25.04   | 🟠    |
+| Debian  | 11      | 🟠    |
+| Debian  | 12      | 🟠    |
+| Debian  | 13      | 🟠    |
 
 > 🟠 = Not Tested  
 > 🔴 = Not Supported  
