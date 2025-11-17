@@ -23,7 +23,7 @@ A simple script to install and manage VNC with your choice of desktop environmen
 
 | OS      | Version | Supported |
 | ------- | ------- | --------- |
-| Ubuntu  | 22.04   | 🟠        |
+| Ubuntu  | 22.04   | 🟢        |
 | Ubuntu  | 24.04   | 🟢        |
 | Debian  | 10      | 🟠        |
 | Debian  | 11      | 🟠        |
