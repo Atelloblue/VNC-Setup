@@ -79,6 +79,9 @@ declare -A DE_CMD_TO_PACKAGE=(
 )
 
 installed_de=""
+DE_CMD=""
+
+# Detect installed DE
 for de in "${!DE_LIST[@]}"; do
     if command -v "${DE_LIST[$de]}" &>/dev/null; then
         installed_de="$de"
@@ -102,9 +105,14 @@ if [[ -n "$installed_de" ]]; then
             ;;
         2)
             echo "Uninstalling $installed_de..."
-            sudo apt purge -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}
+            # Remove only installed packages to prevent errors
+            for pkg in ${DE_CMD_TO_PACKAGE[$DE_CMD]}; do
+                if dpkg -l | grep -qw "$pkg"; then
+                    sudo apt purge -y "$pkg"
+                fi
+            done
             sudo apt autoremove -y
-            # Remove xstartup file if it exists
+            # Remove VNC xstartup if exists
             if [[ -f "$USER_HOME/.vnc/xstartup" ]]; then
                 rm -f "$USER_HOME/.vnc/xstartup"
                 echo -e "${GREEN}Removed .vnc/xstartup${NC}"
