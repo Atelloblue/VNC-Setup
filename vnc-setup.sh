@@ -2,7 +2,7 @@
 # ================================
 # VNC Setup - VNC & Desktop Installer
 # Interactive VNC + Desktop Environment Setup
-# Supports: GNOME, XFCE, LXDE, MATE
+# Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon
 # ================================
 
 set -e
@@ -30,7 +30,7 @@ read -rp "Press Enter to continue..."
 # --- Step 2: Choose Desktop Environment
 echo -e "${BLUE}Step 2: Choose Desktop Environment:${NC}"
 PS3="Select an option: "
-options=("GNOME (default Ubuntu desktop)" "XFCE (lightweight)" "LXDE (very lightweight)" "MATE (moderate)")
+options=("GNOME (default Ubuntu desktop)" "XFCE (lightweight)" "LXDE (very lightweight)" "MATE (moderate)" "KDE (plasma desktop)" "Cinnamon (modern desktop)")
 select opt in "${options[@]}"; do
     case "$REPLY" in
         1|"")
@@ -61,8 +61,22 @@ select opt in "${options[@]}"; do
             sudo apt install -y mate-desktop-environment dbus-x11
             break
             ;;
+        5)
+            DE_NAME="KDE"
+            DE_CMD="startplasma-x11"
+            echo "Installing KDE Plasma..."
+            sudo apt install -y kde-plasma-desktop dbus-x11
+            break
+            ;;
+        6)
+            DE_NAME="Cinnamon"
+            DE_CMD="cinnamon-session"
+            echo "Installing Cinnamon..."
+            sudo apt install -y cinnamon dbus-x11
+            break
+            ;;
         *)
-            echo -e "${RED}Invalid choice, please select 1-4.${NC}"
+            echo -e "${RED}Invalid choice, please select 1-6.${NC}"
             ;;
     esac
 done
