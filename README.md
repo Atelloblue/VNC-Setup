@@ -10,7 +10,6 @@ A simple script to install and manage **VNC** with your choice of desktop enviro
 
 ## Features
 
-- Detect and manage existing VNC servers (start, stop, remove).
 - Install **TigerVNC server** automatically if not present.
 - Choose your desktop environment: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon.
 - Set up VNC password for secure access.
