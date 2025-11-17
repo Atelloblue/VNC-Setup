@@ -28,6 +28,7 @@ A simple script to install and manage **VNC** with your choice of desktop enviro
 | Debian  | 11      | 🟠    |
 | Debian  | 12      | 🟠    |
 | Debian  | 13      | 🟠    |
+> Each is tested on GNOME.
 
 > 🟠 = Not Tested  
 > 🔴 = Not Supported  
