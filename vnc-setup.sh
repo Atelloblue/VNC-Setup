@@ -53,7 +53,7 @@ sudo apt install -y software-properties-common
 echo -e "${GREEN}System updated.${NC}"
 read -rp "Press Enter to continue..."
 
-# --- Step 2: Detect or choose Desktop Environment ---
+# --- Step 2: Detect or manage Desktop Environment ---
 echo -e "${BLUE}Step 2: Checking installed Desktop Environments...${NC}"
 
 declare -A DE_LIST=(
@@ -71,16 +71,47 @@ installed_de=""
 for de in "${!DE_LIST[@]}"; do
     if command -v "${DE_LIST[$de]}" &>/dev/null; then
         installed_de="$de"
+        DE_CMD="${DE_LIST[$de]}"
         break
     fi
 done
 
 if [[ -n "$installed_de" ]]; then
-    DE_NAME="$installed_de"
-    DE_CMD="${DE_LIST[$DE_NAME]}"
-    echo -e "${GREEN}Detected installed Desktop Environment: $DE_NAME${NC}"
-else
-    echo "No desktop environment detected. Please choose one to install:"
+    echo -e "${YELLOW}Detected installed Desktop Environment: $installed_de${NC}"
+    echo "Choose an action:"
+    echo "  1) Reinstall"
+    echo "  2) Uninstall"
+    echo "  3) Restart"
+    echo "  4) Stop (kill all DE processes)"
+    read -rp "Enter choice [1-4, default 3]: " de_action
+    case "$de_action" in
+        1)
+            echo "Reinstalling $installed_de..."
+            sudo apt install --reinstall -y "$installed_de"
+            ;;
+        2)
+            echo "Uninstalling $installed_de..."
+            sudo apt purge -y "$installed_de"
+            sudo apt autoremove -y
+            installed_de=""
+            ;;
+        3|"")
+            echo "Restarting $installed_de..."
+            pkill -HUP -f "$DE_CMD" || echo "No running session to restart."
+            ;;
+        4)
+            echo "Stopping $installed_de..."
+            pkill -f "$DE_CMD" || echo "No running session to stop."
+            ;;
+        *)
+            echo -e "${RED}Invalid choice, continuing...${NC}"
+            ;;
+    esac
+fi
+
+# If no DE is installed (or was uninstalled), prompt for installation
+if [[ -z "$installed_de" ]]; then
+    echo "No desktop environment installed. Please choose one to install:"
     PS3="Select an option: "
     options=(
         "GNOME (default Ubuntu desktop)"
@@ -122,9 +153,10 @@ else
                 echo -e "${RED}Invalid choice, please select 1-8.${NC}";;
         esac
     done
+    installed_de="$DE_NAME"
 fi
 
-echo -e "${GREEN}Desktop Environment set to $DE_NAME.${NC}"
+echo -e "${GREEN}Desktop Environment set to $installed_de.${NC}"
 read -rp "Press Enter to continue..."
 
 # --- Step 3: Install TigerVNC if not installed ---
@@ -151,7 +183,7 @@ unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
 export XDG_SESSION_TYPE=x11
 export GDK_BACKEND=x11
-export XDG_CURRENT_DESKTOP=$DE_NAME
+export XDG_CURRENT_DESKTOP=$installed_de
 
 [ -x /usr/bin/$DE_CMD ] && exec dbus-launch --exit-with-session $DE_CMD
 EOL
