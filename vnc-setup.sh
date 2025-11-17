@@ -1,7 +1,7 @@
 #!/bin/bash
 # ================================
 # Smart VNC Setup - Ubuntu Desktop Installer
-# Detects installed DEs, installs only if needed
+# Detects installed DEs using real installed packages (dpkg)
 # Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon, Budgie, Deepin
 # ================================
 
@@ -53,7 +53,7 @@ sudo apt install -y software-properties-common
 echo -e "${GREEN}System updated.${NC}"
 read -rp "Press Enter to continue..."
 
-# --- Step 2: Detect installed DEs ---
+# --- Step 2: Detect installed DEs using dpkg ---
 echo -e "${BLUE}Step 2: Detecting installed Desktop Environments...${NC}"
 
 declare -A DE_LIST=(
@@ -78,17 +78,18 @@ declare -A DE_PACKAGES=(
     ["startdde"]="dde lightdm dde-file-manager dde-terminal"
 )
 
-# Detect installed DEs based on packages
+# === NEW FIXED DETECTION BLOCK ===
 installed_des=()
 for de in "${!DE_LIST[@]}"; do
     DE_CMD="${DE_LIST[$de]}"
     for pkg in ${DE_PACKAGES[$DE_CMD]}; do
-        if dpkg -l "$pkg" &>/dev/null; then
+        if dpkg -l "$pkg" 2>/dev/null | grep -q '^ii'; then
             installed_des+=("$de")
             break
         fi
     done
 done
+# =================================
 
 if [[ ${#installed_des[@]} -eq 0 ]]; then
     echo -e "${YELLOW}No desktop environment detected.${NC}"
@@ -99,12 +100,14 @@ fi
 # --- Step 2a: Manage each detected DE ---
 for de in "${installed_des[@]}"; do
     DE_CMD="${DE_LIST[$de]}"
+
     echo -e "Managing $de:"
     echo "  1) Reinstall"
     echo "  2) Uninstall (remove binaries)"
     echo "  3) Restart"
     echo "  4) Stop (kill all DE processes)"
     read -rp "Enter choice [1-4, default 3]: " de_action
+
     case "$de_action" in
         1)
             echo "Reinstalling $de completely..."
@@ -113,13 +116,16 @@ for de in "${installed_des[@]}"; do
             sudo apt install -y ${DE_PACKAGES[$DE_CMD]}
             ;;
         2)
-            echo "Purging $de completely, removing binaries..."
+            echo "Purging $de completely, removing binaries and xstartup..."
             sudo apt purge -y ${DE_PACKAGES[$DE_CMD]} || true
             sudo apt autoremove -y
-            # Remove binaries explicitly
+
+            # Remove binaries
             for bin in ${DE_PACKAGES[$DE_CMD]}; do
-                sudo rm -rf /usr/bin/$bin /usr/local/bin/$bin /usr/share/$bin 2>/dev/null || true
+                sudo rm -rf /usr/bin/$bin /usr/share/$bin 2>/dev/null || true
             done
+
+            # Remove xstartup
             if [[ -f "$USER_HOME/.vnc/xstartup" ]]; then
                 rm -f "$USER_HOME/.vnc/xstartup"
                 echo -e "${GREEN}Removed .vnc/xstartup${NC}"
@@ -139,12 +145,12 @@ for de in "${installed_des[@]}"; do
     esac
 done
 
-# --- Refresh installed DEs list after management ---
+# --- Refresh DE list ---
 installed_des=()
 for de in "${!DE_LIST[@]}"; do
     DE_CMD="${DE_LIST[$de]}"
     for pkg in ${DE_PACKAGES[$DE_CMD]}; do
-        if dpkg -l "$pkg" &>/dev/null; then
+        if dpkg -l "$pkg" 2>/dev/null | grep -q '^ii'; then
             installed_des+=("$de")
             break
         fi
@@ -154,7 +160,7 @@ done
 echo -e "${GREEN}Desktop Environments installed/managed: ${installed_des[*]:-None}${NC}"
 read -rp "Press Enter to continue..."
 
-# --- Step 3: Install TigerVNC if not installed ---
+# --- Step 3: Install TigerVNC ---
 if ! command -v vncserver &>/dev/null; then
     echo -e "${BLUE}Step 3: Installing TigerVNC...${NC}"
     sudo apt install -y tigervnc-standalone-server tigervnc-tools
@@ -169,12 +175,14 @@ echo -e "${BLUE}Step 4: Set VNC password for user $USER:${NC}"
 vncpasswd || echo "VNC password setup skipped."
 read -rp "Press Enter to continue..."
 
-# --- Step 5: Configure xstartup if a DE exists ---
+# --- Step 5: Configure xstartup ---
 if [[ ${#installed_des[@]} -gt 0 ]]; then
     DE_NAME="${installed_des[0]}"
     DE_CMD="${DE_LIST[$DE_NAME]}"
+
     echo -e "${BLUE}Step 5: Configuring VNC session for $DE_NAME...${NC}"
     mkdir -p "$USER_HOME/.vnc"
+
     cat > "$USER_HOME/.vnc/xstartup" <<EOL
 #!/bin/bash
 unset SESSION_MANAGER
@@ -185,6 +193,7 @@ export XDG_CURRENT_DESKTOP=$DE_NAME
 
 [ -x /usr/bin/$DE_CMD ] && exec dbus-launch --exit-with-session $DE_CMD
 EOL
+
     chmod +x "$USER_HOME/.vnc/xstartup"
     echo -e "${GREEN}VNC xstartup configured.${NC}"
 else
