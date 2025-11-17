@@ -1,5 +1,8 @@
 # :desktop_computer: VNC Setup
 
+[![GitHub stars](https://img.shields.io/github/stars/Atelloblue/VNC-Setup?color=brightgreen)](https://github.com/Atelloblue/VNC-Setup/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/Atelloblue/VNC-Setup?color=brightgreen)](https://github.com/Atelloblue/VNC-Setup/issues)
+[![GitHub forks](https://img.shields.io/github/forks/Atelloblue/VNC-Setup?color=brightgreen)](https://github.com/Atelloblue/VNC-Setup/network)
 [![made-with-bash](https://img.shields.io/badge/-Made%20with%20Bash-1f425f.svg)](https://www.gnu.org/software/bash/)
 
 A simple script to install and manage **VNC** with your choice of desktop environment (GNOME, XFCE, LXDE, MATE, KDE, Cinnamon) on **Ubuntu** or **Debian** computers.
