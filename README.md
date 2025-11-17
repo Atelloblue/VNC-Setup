@@ -10,7 +10,7 @@ A simple script to install and manage VNC with your choice of desktop environmen
 
 ## Features
 
-- Choose your desktop environment: GNOME, XFCE, MATE, LXDE.
+- Choose your desktop environment: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon, Budgie, Deepin.
 - Detects existing VNC servers and lets you start, stop, or remove them.
 - Installs TigerVNC server automatically.
 - Sets up VNC password for access.
