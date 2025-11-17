@@ -1,210 +1,174 @@
 #!/bin/bash
-set -euo pipefail
+# ================================
+# VNC Setup - VNC & Desktop Installer
+# Interactive VNC + Desktop Environment Setup
+# Supports: GNOME, XFCE, LXDE, MATE
+# ================================
 
-# ------------------------------
-# Colors for output
-# ------------------------------
+set -e
+
+# Colors for nicer UI
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 BLUE="\033[0;34m"
-NC="\033[0m"
+NC="\033[0m" # No Color
 
-# ------------------------------
-# Basic variables
-# ------------------------------
 USER_HOME=$(eval echo "~$USER")
 VNC_DISPLAY=":1"
 VNC_PORT="5901"
 
-echo -e "${BLUE}=== Smart VNC Setup for Ubuntu ===${NC}"
+echo -e "${BLUE}=== VNC Setup: VNC & Desktop Installer ===${NC}"
 
-# ------------------------------
-# Desktop Environment definitions
-# ------------------------------
-declare -A DE_LIST=(
-    ["GNOME"]="gnome-session"
-    ["XFCE"]="startxfce4"
-    ["LXDE"]="startlxde"
-    ["MATE"]="mate-session"
-    ["KDE"]="startplasma-x11"
-    ["Cinnamon"]="cinnamon-session"
-    ["Budgie"]="budgie-desktop"
-    ["Deepin"]="startdde"
-)
-
-declare -A DE_PACKAGES=(
-    ["gnome-session"]="ubuntu-desktop gnome-session gdm3 nautilus gedit gnome-terminal"
-    ["startxfce4"]="xfce4 xfce4-goodies lightdm thunar mousepad xfce4-terminal"
-    ["startlxde"]="lxde lxde-common lxdm pcmanfm lxterminal"
-    ["mate-session"]="mate-desktop-environment lightdm caja mate-terminal pluma"
-    ["startplasma-x11"]="kde-plasma-desktop plasma-desktop sddm konsole dolphin kate"
-    ["cinnamon-session"]="cinnamon lightdm nemo gnome-terminal"
-    ["budgie-desktop"]="ubuntu-budgie-desktop lightdm budgie-desktop"
-    ["startdde"]="dde lightdm dde-file-manager dde-terminal"
-)
-
-# ------------------------------
-# Detect installed Desktop Environments
-# ------------------------------
-echo -e "${BLUE}Checking for installed Desktop Environments...${NC}"
-installed_des=()
-for de in "${!DE_LIST[@]}"; do
-    DE_CMD="${DE_LIST[$de]}"
-    for pkg in ${DE_PACKAGES[$DE_CMD]}; do
-        if dpkg -l "$pkg" 2>/dev/null | grep -q "^ii"; then
-            installed_des+=("$de")
-            break
-        fi
-    done
-done
-
-# ------------------------------
-# No DE installed → show install menu
-# ------------------------------
-if [[ ${#installed_des[@]} -eq 0 ]]; then
-    echo -e "${YELLOW}No Desktop Environment detected.${NC}"
-    echo "Please choose one to install:"
-    echo " 1) XFCE"
-    echo " 2) GNOME"
-    echo " 3) KDE Plasma"
-    echo " 4) MATE"
-    echo " 5) Cinnamon"
-    echo " 6) Budgie"
-    echo " 7) Deepin"
-    echo " 8) LXDE"
-    read -rp "Enter choice [1-8]: " choice
-
-    case "$choice" in
-        1) DE_NAME="XFCE" ;;
-        2) DE_NAME="GNOME" ;;
-        3) DE_NAME="KDE" ;;
-        4) DE_NAME="MATE" ;;
-        5) DE_NAME="Cinnamon" ;;
-        6) DE_NAME="Budgie" ;;
-        7) DE_NAME="Deepin" ;;
-        8) DE_NAME="LXDE" ;;
-        *) echo -e "${RED}Invalid choice. Exiting.${NC}"; exit 1 ;;
-    esac
-
-    DE_CMD="${DE_LIST[$DE_NAME]}"
-
-    echo -e "${BLUE}Installing $DE_NAME Desktop Environment...${NC}"
-    sudo apt update
-    sudo apt install -y ${DE_PACKAGES[$DE_CMD]}
-    installed_des=("$DE_NAME")
-fi
-
-# ------------------------------
-# Manage installed DEs
-# ------------------------------
-for de in "${installed_des[@]}"; do
-    DE_CMD="${DE_LIST[$de]}"
-    echo -e "${GREEN}Detected DE: $de${NC}"
-    echo "Choose an action for $de:"
-    echo " 1) Reinstall"
-    echo " 2) Uninstall"
-    echo " 3) Restart"
-    echo " 4) Stop"
-    read -rp "Enter choice [1-4, default 3]: " act
-
-    case "$act" in
+# --- Step 0: Check existing VNC sessions
+existing_vnc=$(vncserver -list 2>/dev/null | grep $VNC_DISPLAY || true)
+if [[ -n "$existing_vnc" ]]; then
+    echo -e "${YELLOW}Existing VNC session detected on $VNC_DISPLAY:${NC}"
+    echo "$existing_vnc"
+    echo "Choose an action:"
+    echo "  1) Start existing session"
+    echo "  2) Kill existing session"
+    echo "  3) Continue with setup"
+    read -rp "Enter choice [1-3, default 3]: " vnc_choice
+    case "$vnc_choice" in
         1)
-            echo -e "${BLUE}Reinstalling $de...${NC}"
-            sudo apt purge -y ${DE_PACKAGES[$DE_CMD]} || true
-            sudo apt autoremove -y
-            sudo apt install -y ${DE_PACKAGES[$DE_CMD]}
+            vncserver $VNC_DISPLAY
+            echo -e "${GREEN}VNC started on $VNC_DISPLAY${NC}"
+            exit 0
             ;;
         2)
-            echo -e "${BLUE}Uninstalling $de...${NC}"
-            sudo apt purge -y ${DE_PACKAGES[$DE_CMD]} || true
-            sudo apt autoremove -y
-            for bin in ${DE_PACKAGES[$DE_CMD]}; do
-                sudo rm -rf /usr/bin/$bin /usr/share/$bin 2>/dev/null || true
-            done
-            rm -f "$USER_HOME/.vnc/xstartup" || true
+            vncserver -kill $VNC_DISPLAY || true
+            echo -e "${GREEN}Killed existing VNC session.${NC}"
             ;;
-        3|"")
-            echo -e "${BLUE}Restarting $de...${NC}"
-            pkill -HUP -f "$DE_CMD" || true
+        *)
+            echo "Continuing setup..."
+            ;;
+    esac
+fi
+
+# --- Step 1: Update & Upgrade
+echo -e "${BLUE}Step 1: Updating system...${NC}"
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y software-properties-common
+echo -e "${GREEN}System updated.${NC}"
+read -rp "Press Enter to continue..."
+
+
+# --- Step 2: Choose Desktop Environment
+echo -e "${BLUE}Step 2: Choose Desktop Environment:${NC}"
+PS3="Select an option: "
+options=("GNOME (default Ubuntu desktop)" "XFCE (lightweight)" "LXDE (very lightweight)" "MATE (moderate)")
+select opt in "${options[@]}"; do
+    case "$REPLY" in
+        1|"")
+            DE_NAME="GNOME"
+            DE_CMD="gnome-session"
+            echo "Installing GNOME..."
+            sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
+            break
+            ;;
+        2)
+            DE_NAME="XFCE"
+            DE_CMD="startxfce4"
+            echo "Installing XFCE..."
+            sudo apt install -y xfce4 xfce4-goodies dbus-x11
+            break
+            ;;
+        3)
+            DE_NAME="LXDE"
+            DE_CMD="startlxde"
+            echo "Installing LXDE..."
+            sudo apt install -y lxde dbus-x11
+            break
             ;;
         4)
-            echo -e "${BLUE}Stopping $de...${NC}"
-            pkill -f "$DE_CMD" || true
+            DE_NAME="MATE"
+            DE_CMD="mate-session"
+            echo "Installing MATE..."
+            sudo apt install -y mate-desktop-environment dbus-x11
+            break
+            ;;
+        *)
+            echo -e "${RED}Invalid choice, please select 1-4.${NC}"
             ;;
     esac
 done
+echo -e "${GREEN}Desktop Environment set to $DE_NAME.${NC}"
+read -rp "Press Enter to continue..."
 
-# ------------------------------
-# Install TigerVNC if missing
-# ------------------------------
-if ! command -v vncserver &>/dev/null; then
-    echo -e "${BLUE}Installing TigerVNC server...${NC}"
-    sudo apt install -y tigervnc-standalone-server tigervnc-tools
-fi
 
-# ------------------------------
-# Set VNC password
-# ------------------------------
-echo -e "${BLUE}Please set a VNC password:${NC}"
+# --- Step 3: Install TigerVNC
+echo -e "${BLUE}Step 3: Installing TigerVNC...${NC}"
+sudo apt install -y tigervnc-standalone-server tigervnc-tools
+echo -e "${GREEN}TigerVNC installed.${NC}"
+read -rp "Press Enter to continue..."
+
+
+# --- Step 4: Set VNC password
+echo -e "${BLUE}Step 4: Set VNC password for user $USER:${NC}"
 vncpasswd
+read -rp "Press Enter to continue..."
 
-# ------------------------------
-# Configure xstartup
-# ------------------------------
-DE_NAME="${installed_des[0]}"
-DE_CMD="${DE_LIST[$DE_NAME]}"
+
+# --- Step 5: Configure xstartup
+echo -e "${BLUE}Step 5: Configuring VNC session...${NC}"
 mkdir -p "$USER_HOME/.vnc"
-
-cat > "$USER_HOME/.vnc/xstartup" <<EOF
+cat > "$USER_HOME/.vnc/xstartup" <<EOL
 #!/bin/bash
-# Start the selected Desktop Environment
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
-exec $DE_CMD
-EOF
+export XDG_SESSION_TYPE=x11
+export GDK_BACKEND=x11
+export XDG_CURRENT_DESKTOP=$DE_NAME
 
+[ -x /usr/bin/$DE_CMD ] && exec dbus-launch --exit-with-session $DE_CMD
+EOL
 chmod +x "$USER_HOME/.vnc/xstartup"
+echo -e "${GREEN}VNC xstartup configured.${NC}"
+read -rp "Press Enter to continue..."
 
-# ------------------------------
-# Start VNC server with optional localhost-only binding
-# ------------------------------
-echo -e "${BLUE}Starting VNC server...${NC}"
-read -rp "Bind VNC to localhost only? (y/n) [y]: " local_only
-if [[ "$local_only" =~ ^[Nn]$ ]]; then
-    LOCAL_FLAG=""
-    echo -e "${YELLOW}VNC will be accessible from all network interfaces.${NC}"
+
+# --- Step 6: External access
+read -rp "Allow VNC connections from outside the VPS? (y/n) [n]: " ext_access
+if [[ "$ext_access" =~ ^[Yy]$ ]]; then
+    LOCALHOST_ARG="-localhost no"
 else
-    LOCAL_FLAG="-localhost"
-    echo -e "${YELLOW}VNC will be bound to localhost only (127.0.0.1).${NC}"
+    LOCALHOST_ARG=""
 fi
 
-vncserver -kill "$VNC_DISPLAY" >/dev/null 2>&1 || true
-vncserver "$VNC_DISPLAY" -geometry 1920x1080 -depth 24 $LOCAL_FLAG
+# --- Step 7: Start VNC server
+echo -e "${BLUE}Starting VNC server...${NC}"
+vncserver $VNC_DISPLAY -geometry 1920x1080 -depth 24 $LOCALHOST_ARG
+echo -e "${GREEN}VNC started on $VNC_DISPLAY (port $VNC_PORT).${NC}"
+read -rp "Press Enter to continue..."
 
-# ------------------------------
-# Optional systemd autostart
-# ------------------------------
-read -rp "Enable VNC autostart on boot? (y/n) [n]: " auto
-if [[ "$auto" =~ ^[Yy]$ ]]; then
-    echo -e "${BLUE}Creating systemd service for VNC...${NC}"
-    sudo bash -c "cat >/etc/systemd/system/vncserver@.service <<EOF
+
+# --- Step 8: Optional systemd auto-start
+read -rp "Enable VNC to start automatically on boot? (y/n) [n]: " auto_start
+if [[ "$auto_start" =~ ^[Yy]$ ]]; then
+sudo bash -c "cat > /etc/systemd/system/vncserver@.service <<EOL
 [Unit]
-Description=VNC Server
-After=network.target
+Description=Start TigerVNC server at startup
+After=syslog.target network.target
 
 [Service]
 Type=forking
 User=$USER
-ExecStart=/usr/bin/vncserver :%i -geometry 1920x1080 -depth 24 $LOCAL_FLAG
+PAMName=login
+PIDFile=$USER_HOME/.vnc/%H:%i.pid
+ExecStartPre=-/usr/bin/vncserver -kill :%i > /dev/null 2>&1
+ExecStart=/usr/bin/vncserver :%i -geometry 1920x1080 -depth 24 $LOCALHOST_ARG
 ExecStop=/usr/bin/vncserver -kill :%i
 
 [Install]
 WantedBy=multi-user.target
-EOF"
-    sudo systemctl daemon-reload
-    sudo systemctl enable vncserver@1.service
-    sudo systemctl start vncserver@1.service
+EOL"
+sudo systemctl daemon-reload
+sudo systemctl enable vncserver@1.service
+sudo systemctl start vncserver@1
+echo -e "${GREEN}Systemd service created and started.${NC}"
 fi
 
-echo -e "${GREEN}=== VNC Setup Complete! You can now connect to port $VNC_PORT ===${NC}"
+
+echo -e "${BLUE}=== VNC Setup Complete ===${NC}"
+echo -e "${GREEN}Connect using VNC viewer: <VPS_IP>:$VNC_PORT${NC}"
