@@ -1,27 +1,27 @@
 #!/bin/bash
 # ================================
-# VNC Setup - Ubuntu Desktop Installer
-# Interactive VNC + Desktop Environment Setup
-# Supports: GNOME, XFCE, LXDE, MATE
+# Smart VNC Setup - Ubuntu Desktop Installer
+# Detects installed DEs, installs only if needed
+# Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon, Budgie, Deepin
 # ================================
 
-set -e
+set -euo pipefail
 
-# Colors for nicer UI
+# --- Colors ---
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 BLUE="\033[0;34m"
-NC="\033[0m" # No Color
+NC="\033[0m"
 
 USER_HOME=$(eval echo "~$USER")
 VNC_DISPLAY=":1"
 VNC_PORT="5901"
 
-echo -e "${BLUE}=== VNC Setup: Ubuntu Desktop Installer ===${NC}"
+echo -e "${BLUE}=== Smart VNC Setup: Ubuntu Desktop Installer ===${NC}"
 
-# --- Step 0: Check existing VNC sessions
-existing_vnc=$(vncserver -list 2>/dev/null | grep $VNC_DISPLAY || true)
+# --- Step 0: Check existing VNC sessions ---
+existing_vnc=$(vncserver -list 2>/dev/null | grep "$VNC_DISPLAY" || true)
 if [[ -n "$existing_vnc" ]]; then
     echo -e "${YELLOW}Existing VNC session detected on $VNC_DISPLAY:${NC}"
     echo "$existing_vnc"
@@ -32,12 +32,12 @@ if [[ -n "$existing_vnc" ]]; then
     read -rp "Enter choice [1-3, default 3]: " vnc_choice
     case "$vnc_choice" in
         1)
-            vncserver $VNC_DISPLAY
+            vncserver "$VNC_DISPLAY"
             echo -e "${GREEN}VNC started on $VNC_DISPLAY${NC}"
             exit 0
             ;;
         2)
-            vncserver -kill $VNC_DISPLAY || true
+            vncserver -kill "$VNC_DISPLAY" || true
             echo -e "${GREEN}Killed existing VNC session.${NC}"
             ;;
         *)
@@ -46,71 +46,103 @@ if [[ -n "$existing_vnc" ]]; then
     esac
 fi
 
-# --- Step 1: Update & Upgrade
+# --- Step 1: Update & Upgrade ---
 echo -e "${BLUE}Step 1: Updating system...${NC}"
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y software-properties-common
 echo -e "${GREEN}System updated.${NC}"
 read -rp "Press Enter to continue..."
 
+# --- Step 2: Detect or choose Desktop Environment ---
+echo -e "${BLUE}Step 2: Checking installed Desktop Environments...${NC}"
 
-# --- Step 2: Choose Desktop Environment
-echo -e "${BLUE}Step 2: Choose Desktop Environment:${NC}"
-PS3="Select an option: "
-options=("GNOME (default Ubuntu desktop)" "XFCE (lightweight)" "LXDE (very lightweight)" "MATE (moderate)")
-select opt in "${options[@]}"; do
-    case "$REPLY" in
-        1|"")
-            DE_NAME="GNOME"
-            DE_CMD="gnome-session"
-            echo "Installing GNOME..."
-            sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
-            break
-            ;;
-        2)
-            DE_NAME="XFCE"
-            DE_CMD="startxfce4"
-            echo "Installing XFCE..."
-            sudo apt install -y xfce4 xfce4-goodies dbus-x11
-            break
-            ;;
-        3)
-            DE_NAME="LXDE"
-            DE_CMD="startlxde"
-            echo "Installing LXDE..."
-            sudo apt install -y lxde dbus-x11
-            break
-            ;;
-        4)
-            DE_NAME="MATE"
-            DE_CMD="mate-session"
-            echo "Installing MATE..."
-            sudo apt install -y mate-desktop-environment dbus-x11
-            break
-            ;;
-        *)
-            echo -e "${RED}Invalid choice, please select 1-4.${NC}"
-            ;;
-    esac
+declare -A DE_LIST=(
+    ["GNOME"]="gnome-session"
+    ["XFCE"]="startxfce4"
+    ["LXDE"]="startlxde"
+    ["MATE"]="mate-session"
+    ["KDE"]="startplasma-x11"
+    ["Cinnamon"]="cinnamon-session"
+    ["Budgie"]="budgie-desktop"
+    ["Deepin"]="startdde"
+)
+
+installed_de=""
+for de in "${!DE_LIST[@]}"; do
+    if command -v "${DE_LIST[$de]}" &>/dev/null; then
+        installed_de="$de"
+        break
+    fi
 done
+
+if [[ -n "$installed_de" ]]; then
+    DE_NAME="$installed_de"
+    DE_CMD="${DE_LIST[$DE_NAME]}"
+    echo -e "${GREEN}Detected installed Desktop Environment: $DE_NAME${NC}"
+else
+    echo "No desktop environment detected. Please choose one to install:"
+    PS3="Select an option: "
+    options=(
+        "GNOME (default Ubuntu desktop)"
+        "XFCE (lightweight)"
+        "LXDE (very lightweight)"
+        "MATE (moderate)"
+        "KDE Plasma (full-featured)"
+        "Cinnamon (user-friendly)"
+        "Budgie (sleek lightweight)"
+        "Deepin (polished interface)"
+    )
+    select opt in "${options[@]}"; do
+        case "$REPLY" in
+            1|"")
+                DE_NAME="GNOME"; DE_CMD="gnome-session"
+                sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11; break;;
+            2)
+                DE_NAME="XFCE"; DE_CMD="startxfce4"
+                sudo apt install -y xfce4 xfce4-goodies dbus-x11; break;;
+            3)
+                DE_NAME="LXDE"; DE_CMD="startlxde"
+                sudo apt install -y lxde dbus-x11; break;;
+            4)
+                DE_NAME="MATE"; DE_CMD="mate-session"
+                sudo apt install -y mate-desktop-environment dbus-x11; break;;
+            5)
+                DE_NAME="KDE"; DE_CMD="startplasma-x11"
+                sudo apt install -y kde-plasma-desktop dbus-x11; break;;
+            6)
+                DE_NAME="Cinnamon"; DE_CMD="cinnamon-session"
+                sudo apt install -y cinnamon dbus-x11; break;;
+            7)
+                DE_NAME="Budgie"; DE_CMD="budgie-desktop"
+                sudo apt install -y ubuntu-budgie-desktop dbus-x11; break;;
+            8)
+                DE_NAME="Deepin"; DE_CMD="startdde"
+                sudo apt install -y dde dbus-x11; break;;
+            *)
+                echo -e "${RED}Invalid choice, please select 1-8.${NC}";;
+        esac
+    done
+fi
+
 echo -e "${GREEN}Desktop Environment set to $DE_NAME.${NC}"
 read -rp "Press Enter to continue..."
 
-
-# --- Step 3: Install TigerVNC
-echo -e "${BLUE}Step 3: Installing TigerVNC...${NC}"
-sudo apt install -y tigervnc-standalone-server tigervnc-tools
-echo -e "${GREEN}TigerVNC installed.${NC}"
+# --- Step 3: Install TigerVNC if not installed ---
+if ! command -v vncserver &>/dev/null; then
+    echo -e "${BLUE}Step 3: Installing TigerVNC...${NC}"
+    sudo apt install -y tigervnc-standalone-server tigervnc-tools
+    echo -e "${GREEN}TigerVNC installed.${NC}"
+else
+    echo -e "${GREEN}TigerVNC already installed.${NC}"
+fi
 read -rp "Press Enter to continue..."
 
-
-# --- Step 4: Set VNC password
+# --- Step 4: Set VNC password ---
 echo -e "${BLUE}Step 4: Set VNC password for user $USER:${NC}"
 vncpasswd
 read -rp "Press Enter to continue..."
 
-
-# --- Step 5: Configure xstartup
+# --- Step 5: Configure xstartup ---
 echo -e "${BLUE}Step 5: Configuring VNC session...${NC}"
 mkdir -p "$USER_HOME/.vnc"
 cat > "$USER_HOME/.vnc/xstartup" <<EOL
@@ -127,8 +159,7 @@ chmod +x "$USER_HOME/.vnc/xstartup"
 echo -e "${GREEN}VNC xstartup configured.${NC}"
 read -rp "Press Enter to continue..."
 
-
-# --- Step 6: External access
+# --- Step 6: External access ---
 read -rp "Allow VNC connections from outside the VPS? (y/n) [n]: " ext_access
 if [[ "$ext_access" =~ ^[Yy]$ ]]; then
     LOCALHOST_ARG="-localhost no"
@@ -136,14 +167,13 @@ else
     LOCALHOST_ARG=""
 fi
 
-# --- Step 7: Start VNC server
+# --- Step 7: Start VNC server ---
 echo -e "${BLUE}Starting VNC server...${NC}"
-vncserver $VNC_DISPLAY -geometry 1920x1080 -depth 24 $LOCALHOST_ARG
+vncserver "$VNC_DISPLAY" -geometry 1920x1080 -depth 24 $LOCALHOST_ARG
 echo -e "${GREEN}VNC started on $VNC_DISPLAY (port $VNC_PORT).${NC}"
 read -rp "Press Enter to continue..."
 
-
-# --- Step 8: Optional systemd auto-start
+# --- Step 8: Systemd auto-start ---
 read -rp "Enable VNC to start automatically on boot? (y/n) [n]: " auto_start
 if [[ "$auto_start" =~ ^[Yy]$ ]]; then
 sudo bash -c "cat > /etc/systemd/system/vncserver@.service <<EOL
@@ -169,14 +199,5 @@ sudo systemctl start vncserver@1
 echo -e "${GREEN}Systemd service created and started.${NC}"
 fi
 
-
-# --- Step 9: Optional apps
-read -rp "Install Firefox? (y/n) [y]: " install_firefox
-if [[ ! "$install_firefox" =~ ^[Nn]$ ]]; then
-    echo "Installing Firefox..."
-    sudo apt install -y firefox
-    echo -e "${GREEN}Firefox installed.${NC}"
-fi
-
-echo -e "${BLUE}=== VNC Setup Complete ===${NC}"
+echo -e "${BLUE}=== Smart VNC Setup Complete ===${NC}"
 echo -e "${GREEN}Connect using VNC viewer: <VPS_IP>:$VNC_PORT${NC}"
