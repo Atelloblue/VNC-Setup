@@ -23,7 +23,7 @@ A simple script to install and manage **VNC** with your choice of desktop enviro
 | OS      | Version |       |
 | ------- | ------- | ----- |
 | Ubuntu  | 22.04   | 🟠    |
-| Ubuntu  | 24.04   | 🟢    |
+| Ubuntu  | 24.04   | 🟠    |
 | Ubuntu  | 25.04   | 🟠    |
 | Debian  | 11      | 🟠    |
 | Debian  | 12      | 🟠    |
