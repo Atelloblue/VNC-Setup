@@ -3,7 +3,6 @@
 # Smart VNC Setup - Ubuntu Desktop Installer
 # Detects installed DEs, installs only if needed
 # Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon, Budgie, Deepin
-# Handles multiple installed DEs
 # ================================
 
 set -euo pipefail
@@ -54,7 +53,7 @@ sudo apt install -y software-properties-common
 echo -e "${GREEN}System updated.${NC}"
 read -rp "Press Enter to continue..."
 
-# --- Step 2: Detect all installed Desktop Environments ---
+# --- Step 2: Detect installed DEs ---
 echo -e "${BLUE}Step 2: Detecting installed Desktop Environments...${NC}"
 
 declare -A DE_LIST=(
@@ -68,116 +67,84 @@ declare -A DE_LIST=(
     ["Deepin"]="startdde"
 )
 
-declare -A DE_CMD_TO_PACKAGE=(
-    ["gnome-session"]="ubuntu-desktop gnome-session gdm3 dbus-x11"
-    ["startxfce4"]="xfce4 xfce4-goodies dbus-x11 lightdm"
-    ["startlxde"]="lxde dbus-x11 lxdm"
-    ["mate-session"]="mate-desktop-environment dbus-x11 lightdm"
-    ["startplasma-x11"]="kde-plasma-desktop dbus-x11 sddm"
-    ["cinnamon-session"]="cinnamon dbus-x11 lightdm"
-    ["budgie-desktop"]="ubuntu-budgie-desktop dbus-x11 gdm3"
-    ["startdde"]="dde dbus-x11 lightdm"
+declare -A DE_PACKAGES=(
+    ["gnome-session"]="ubuntu-desktop gnome-session gdm3 nautilus gedit gnome-terminal"
+    ["startxfce4"]="xfce4 xfce4-goodies lightdm thunar mousepad xfce4-terminal xfce4-panel xfce4-session"
+    ["startlxde"]="lxde lxde-common lxdm pcmanfm lxterminal"
+    ["mate-session"]="mate-desktop-environment lightdm caja mate-terminal pluma"
+    ["startplasma-x11"]="kde-plasma-desktop plasma-desktop sddm konsole dolphin kate kwrite kscreen systemsettings"
+    ["cinnamon-session"]="cinnamon lightdm nemo gnome-terminal"
+    ["budgie-desktop"]="ubuntu-budgie-desktop lightdm budgie-desktop nemo gnome-terminal"
+    ["startdde"]="dde lightdm dde-file-manager dde-terminal"
 )
 
-installed_des=()  # Array to store all installed DEs
+# Detect installed DEs
+installed_des=()
 for de in "${!DE_LIST[@]}"; do
     if command -v "${DE_LIST[$de]}" &>/dev/null; then
         installed_des+=("$de")
     fi
 done
 
-handle_de_removal() {
-    local de="$1"
-    local cmd="$2"
-    echo "Purging $de completely..."
-    packages=${DE_CMD_TO_PACKAGE[$cmd]}
-    for pkg in $packages; do
-        if dpkg -l | grep -qw "$pkg"; then
-            sudo apt purge -y "$pkg" || echo "Failed to purge $pkg"
-        fi
-    done
-    sudo apt autoremove -y
-    if [[ -f "$USER_HOME/.vnc/xstartup" ]]; then
-        rm -f "$USER_HOME/.vnc/xstartup"
-        echo -e "${GREEN}Removed .vnc/xstartup${NC}"
-    fi
-}
-
-# --- Step 2a: Manage installed DEs ---
-if [[ ${#installed_des[@]} -gt 0 ]]; then
-    echo -e "${YELLOW}Detected installed Desktop Environments: ${installed_des[*]}${NC}"
-    for de in "${installed_des[@]}"; do
-        DE_CMD="${DE_LIST[$de]}"
-        echo -e "\nManaging $de:"
-        echo "  1) Reinstall"
-        echo "  2) Uninstall"
-        echo "  3) Restart"
-        echo "  4) Stop (kill all DE processes)"
-        read -rp "Enter choice [1-4, default 3]: " de_action
-        case "$de_action" in
-            1)
-                handle_de_removal "$de" "$DE_CMD"
-                echo "Reinstalling $de..."
-                sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}
-                ;;
-            2)
-                handle_de_removal "$de" "$DE_CMD"
-                ;;
-            3|"")
-                echo "Restarting $de..."
-                pkill -HUP -f "$DE_CMD" || echo "No running session to restart."
-                ;;
-            4)
-                echo "Stopping $de..."
-                pkill -f "$DE_CMD" || echo "No running session to stop."
-                ;;
-            *)
-                echo -e "${RED}Invalid choice, skipping...${NC}"
-                ;;
-        esac
-    done
-else
-    echo "No desktop environment installed."
-fi
-
-# --- Step 2b: Install new DE if none installed ---
 if [[ ${#installed_des[@]} -eq 0 ]]; then
-    echo "Please choose a desktop environment to install:"
-    PS3="Select an option: "
-    options=(
-        "GNOME (default Ubuntu desktop)"
-        "XFCE (lightweight)"
-        "LXDE (very lightweight)"
-        "MATE (moderate)"
-        "KDE Plasma (full-featured)"
-        "Cinnamon (user-friendly)"
-        "Budgie (sleek lightweight)"
-        "Deepin (polished interface)"
-    )
-    select opt in "${options[@]}"; do
-        case "$REPLY" in
-            1|"") DE_NAME="GNOME"; DE_CMD="gnome-session"; break;;
-            2) DE_NAME="XFCE"; DE_CMD="startxfce4"; break;;
-            3) DE_NAME="LXDE"; DE_CMD="startlxde"; break;;
-            4) DE_NAME="MATE"; DE_CMD="mate-session"; break;;
-            5) DE_NAME="KDE"; DE_CMD="startplasma-x11"; break;;
-            6) DE_NAME="Cinnamon"; DE_CMD="cinnamon-session"; break;;
-            7) DE_NAME="Budgie"; DE_CMD="budgie-desktop"; break;;
-            8) DE_NAME="Deepin"; DE_CMD="startdde"; break;;
-            *) echo -e "${RED}Invalid choice, select 1-8.${NC}"; continue;;
-        esac
-        sudo apt install -y ${DE_CMD_TO_PACKAGE[$DE_CMD]}
-        installed_des+=("$DE_NAME")
-        break
-    done
+    echo -e "${YELLOW}No desktop environment detected.${NC}"
+else
+    echo -e "${GREEN}Detected installed Desktop Environments: ${installed_des[*]}${NC}"
 fi
 
-echo -e "${GREEN}Desktop Environments installed/managed: ${installed_des[*]}${NC}"
+# --- Step 2a: Manage each detected DE ---
+for de in "${installed_des[@]}"; do
+    DE_CMD="${DE_LIST[$de]}"
+    echo -e "Managing $de:"
+    echo "  1) Reinstall"
+    echo "  2) Uninstall"
+    echo "  3) Restart"
+    echo "  4) Stop (kill all DE processes)"
+    read -rp "Enter choice [1-4, default 3]: " de_action
+    case "$de_action" in
+        1)
+            echo "Reinstalling $de completely..."
+            sudo apt purge -y ${DE_PACKAGES[$DE_CMD]} || true
+            sudo apt autoremove -y
+            sudo apt install -y ${DE_PACKAGES[$DE_CMD]}
+            ;;
+        2)
+            echo "Purging $de completely..."
+            sudo apt purge -y ${DE_PACKAGES[$DE_CMD]} || true
+            sudo apt autoremove -y
+            if [[ -f "$USER_HOME/.vnc/xstartup" ]]; then
+                rm -f "$USER_HOME/.vnc/xstartup"
+                echo -e "${GREEN}Removed .vnc/xstartup${NC}"
+            fi
+            ;;
+        3|"")
+            echo "Restarting $de..."
+            pkill -HUP -f "$DE_CMD" || echo "No running session to restart."
+            ;;
+        4)
+            echo "Stopping $de..."
+            pkill -f "$DE_CMD" || echo "No running session to stop."
+            ;;
+        *)
+            echo -e "${RED}Invalid choice, continuing...${NC}"
+            ;;
+    esac
+done
+
+# --- Refresh installed DEs list after management ---
+installed_des=()
+for de in "${!DE_LIST[@]}"; do
+    if command -v "${DE_LIST[$de]}" &>/dev/null; then
+        installed_des+=("$de")
+    fi
+done
+
+echo -e "${GREEN}Desktop Environments installed/managed: ${installed_des[*]:-None}${NC}"
 read -rp "Press Enter to continue..."
 
-# --- Step 3: Install TigerVNC ---
+# --- Step 3: Install TigerVNC if not installed ---
 if ! command -v vncserver &>/dev/null; then
-    echo -e "${BLUE}Installing TigerVNC...${NC}"
+    echo -e "${BLUE}Step 3: Installing TigerVNC...${NC}"
     sudo apt install -y tigervnc-standalone-server tigervnc-tools
     echo -e "${GREEN}TigerVNC installed.${NC}"
 else
@@ -186,25 +153,31 @@ fi
 read -rp "Press Enter to continue..."
 
 # --- Step 4: Set VNC password ---
-echo -e "${BLUE}Set VNC password for user $USER:${NC}"
-vncpasswd
+echo -e "${BLUE}Step 4: Set VNC password for user $USER:${NC}"
+vncpasswd || echo "VNC password setup skipped."
 read -rp "Press Enter to continue..."
 
-# --- Step 5: Configure xstartup ---
-echo -e "${BLUE}Configuring VNC session...${NC}"
-mkdir -p "$USER_HOME/.vnc"
-cat > "$USER_HOME/.vnc/xstartup" <<EOL
+# --- Step 5: Configure xstartup if a DE exists ---
+if [[ ${#installed_des[@]} -gt 0 ]]; then
+    DE_NAME="${installed_des[0]}"
+    DE_CMD="${DE_LIST[$DE_NAME]}"
+    echo -e "${BLUE}Step 5: Configuring VNC session for $DE_NAME...${NC}"
+    mkdir -p "$USER_HOME/.vnc"
+    cat > "$USER_HOME/.vnc/xstartup" <<EOL
 #!/bin/bash
 unset SESSION_MANAGER
 unset DBUS_SESSION_BUS_ADDRESS
 export XDG_SESSION_TYPE=x11
 export GDK_BACKEND=x11
-export XDG_CURRENT_DESKTOP=${installed_des[0]}
+export XDG_CURRENT_DESKTOP=$DE_NAME
 
-[ -x /usr/bin/${DE_LIST[${installed_des[0]}]} ] && exec dbus-launch --exit-with-session ${DE_LIST[${installed_des[0]}]}
+[ -x /usr/bin/$DE_CMD ] && exec dbus-launch --exit-with-session $DE_CMD
 EOL
-chmod +x "$USER_HOME/.vnc/xstartup"
-echo -e "${GREEN}VNC xstartup configured.${NC}"
+    chmod +x "$USER_HOME/.vnc/xstartup"
+    echo -e "${GREEN}VNC xstartup configured.${NC}"
+else
+    echo -e "${YELLOW}No DE installed; skipping xstartup configuration.${NC}"
+fi
 read -rp "Press Enter to continue..."
 
 # --- Step 6: External access ---
@@ -217,7 +190,7 @@ fi
 
 # --- Step 7: Start VNC server ---
 echo -e "${BLUE}Starting VNC server...${NC}"
-vncserver "$VNC_DISPLAY" -geometry 1920x1080 -depth 24 $LOCALHOST_ARG || echo "VNC may already be running."
+vncserver "$VNC_DISPLAY" -geometry 1920x1080 -depth 24 $LOCALHOST_ARG || echo "VNC server may already be running."
 echo -e "${GREEN}VNC started on $VNC_DISPLAY (port $VNC_PORT).${NC}"
 read -rp "Press Enter to continue..."
 
