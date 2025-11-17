@@ -33,7 +33,7 @@ select opt in "${options[@]}"; do
     case "$REPLY" in
         1)
             DE_NAME="GNOME"; DE_CMD="gnome-session"
-            read -rp "Install full Ubuntu Desktop flavor? (y/n) [n]: " full
+            read -rp "Install Ubuntu Flavor? (y/n) [n]: " full
             if [[ "$full" =~ ^[Yy]$ ]]; then
                 sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
             else
@@ -43,7 +43,7 @@ select opt in "${options[@]}"; do
             ;;
         2)
             DE_NAME="XFCE"; DE_CMD="startxfce4"
-            read -rp "Install full Xubuntu Desktop flavor? (y/n) [n]: " full
+            read -rp "Install Xubuntu Flavor? (y/n) [n]: " full
             if [[ "$full" =~ ^[Yy]$ ]]; then
                 sudo apt install -y xubuntu-desktop dbus-x11
             else
@@ -63,7 +63,7 @@ select opt in "${options[@]}"; do
             ;;
         5)
             DE_NAME="KDE"; DE_CMD="startplasma-x11"
-            read -rp "Install full Kubuntu Desktop flavor? (y/n) [n]: " full
+            read -rp "Install Kubuntu Flavor? (y/n) [n]: " full
             if [[ "$full" =~ ^[Yy]$ ]]; then
                 sudo apt install -y kubuntu-desktop dbus-x11
             else
