@@ -78,12 +78,16 @@ declare -A DE_PACKAGES=(
     ["startdde"]="dde lightdm dde-file-manager dde-terminal"
 )
 
-# Detect installed DEs
+# Detect installed DEs based on packages
 installed_des=()
 for de in "${!DE_LIST[@]}"; do
-    if command -v "${DE_LIST[$de]}" &>/dev/null; then
-        installed_des+=("$de")
-    fi
+    DE_CMD="${DE_LIST[$de]}"
+    for pkg in ${DE_PACKAGES[$DE_CMD]}; do
+        if dpkg -l "$pkg" &>/dev/null; then
+            installed_des+=("$de")
+            break
+        fi
+    done
 done
 
 if [[ ${#installed_des[@]} -eq 0 ]]; then
@@ -112,9 +116,9 @@ for de in "${installed_des[@]}"; do
             echo "Purging $de completely, removing binaries..."
             sudo apt purge -y ${DE_PACKAGES[$DE_CMD]} || true
             sudo apt autoremove -y
-            # Remove DE binaries explicitly
+            # Remove binaries explicitly
             for bin in ${DE_PACKAGES[$DE_CMD]}; do
-                sudo rm -rf /usr/bin/$bin /usr/share/$bin 2>/dev/null || true
+                sudo rm -rf /usr/bin/$bin /usr/local/bin/$bin /usr/share/$bin 2>/dev/null || true
             done
             if [[ -f "$USER_HOME/.vnc/xstartup" ]]; then
                 rm -f "$USER_HOME/.vnc/xstartup"
@@ -138,9 +142,13 @@ done
 # --- Refresh installed DEs list after management ---
 installed_des=()
 for de in "${!DE_LIST[@]}"; do
-    if command -v "${DE_LIST[$de]}" &>/dev/null; then
-        installed_des+=("$de")
-    fi
+    DE_CMD="${DE_LIST[$de]}"
+    for pkg in ${DE_PACKAGES[$DE_CMD]}; do
+        if dpkg -l "$pkg" &>/dev/null; then
+            installed_des+=("$de")
+            break
+        fi
+    done
 done
 
 echo -e "${GREEN}Desktop Environments installed/managed: ${installed_des[*]:-None}${NC}"
