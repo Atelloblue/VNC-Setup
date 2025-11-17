@@ -1,6 +1,6 @@
 #!/bin/bash
 # ================================
-# VNC Setup 2.1 - VNC & Desktop Installer
+# VNC Setup 1.1 - VNC & Desktop Installer
 # Interactive setup for VNC and Desktop Environments
 # Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon
 # ================================
@@ -20,7 +20,7 @@ VNC_PORT="5901"
 VNC_GEOMETRY="1920x1080"
 VNC_DEPTH="24"
 
-echo -e "${BLUE}=== VNC Setup 2.1 ===${NC}"
+echo -e "${BLUE}=== VNC Setup 2.2 ===${NC}"
 
 # --- Step 1: Update & Upgrade System ---
 echo -e "${BLUE}Step 1: Updating system...${NC}"
@@ -29,7 +29,7 @@ sudo apt install -y software-properties-common
 echo -e "${GREEN}System updated.${NC}"
 
 # --- Step 2: Detect or Install Desktop Environment ---
-DE_DETECTED=$(echo "$XDG_CURRENT_DESKTOP" || true)
+DE_DETECTED="${XDG_CURRENT_DESKTOP:-}"
 if [[ -n "$DE_DETECTED" ]]; then
     echo -e "${YELLOW}Detected desktop environment: $DE_DETECTED${NC}"
     read -rp "Do you want to reinstall or change it? (y/n) [n]: " change_de
@@ -44,7 +44,7 @@ if [[ -z "$DE_DETECTED" ]]; then
     options=("GNOME" "XFCE" "LXDE" "MATE" "KDE" "Cinnamon")
     select opt in "${options[@]}"; do
         case "$REPLY" in
-            1|"")
+            1)
                 DE_NAME="GNOME"; DE_CMD="gnome-session"
                 sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
                 break
