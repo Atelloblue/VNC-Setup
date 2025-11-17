@@ -1,7 +1,6 @@
 #!/bin/bash
 # ================================
-# VNC Setup 1.0 - VNC & Desktop Installer
-# Interactive setup for VNC and Desktop Environments
+# VNC Setup 1.1 - VNC & Desktop Installer with Optional DE Flavors
 # Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon
 # ================================
 
@@ -11,16 +10,14 @@ set -euo pipefail
 RED="\033[0;31m"
 GREEN="\033[0;32m"
 BLUE="\033[0;34m"
-YELLOW="\033[1;33m"
 NC="\033[0m"
 
 USER_HOME=$(eval echo "~$USER")
 VNC_DISPLAY=":1"
-VNC_PORT="5901"
 VNC_GEOMETRY="1920x1080"
 VNC_DEPTH="24"
 
-echo -e "${BLUE}=== VNC Setup 2.3 ===${NC}"
+echo -e "${BLUE}=== VNC Setup 3.1 ===${NC}"
 
 # --- Step 1: Update & Upgrade System ---
 echo -e "${BLUE}Step 1: Updating system...${NC}"
@@ -36,12 +33,22 @@ select opt in "${options[@]}"; do
     case "$REPLY" in
         1)
             DE_NAME="GNOME"; DE_CMD="gnome-session"
-            sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
+            read -rp "Install full Ubuntu Desktop flavor? (y/n) [n]: " full
+            if [[ "$full" =~ ^[Yy]$ ]]; then
+                sudo apt install -y ubuntu-desktop gnome-session gdm3 dbus-x11
+            else
+                sudo apt install -y gnome-session dbus-x11
+            fi
             break
             ;;
         2)
             DE_NAME="XFCE"; DE_CMD="startxfce4"
-            sudo apt install -y xfce4 xfce4-goodies dbus-x11
+            read -rp "Install full Xubuntu Desktop flavor? (y/n) [n]: " full
+            if [[ "$full" =~ ^[Yy]$ ]]; then
+                sudo apt install -y xubuntu-desktop dbus-x11
+            else
+                sudo apt install -y xfce4 xfce4-goodies dbus-x11
+            fi
             break
             ;;
         3)
@@ -56,7 +63,12 @@ select opt in "${options[@]}"; do
             ;;
         5)
             DE_NAME="KDE"; DE_CMD="startplasma-x11"
-            sudo apt install -y kde-plasma-desktop dbus-x11
+            read -rp "Install full Kubuntu Desktop flavor? (y/n) [n]: " full
+            if [[ "$full" =~ ^[Yy]$ ]]; then
+                sudo apt install -y kubuntu-desktop dbus-x11
+            else
+                sudo apt install -y kde-plasma-desktop dbus-x11
+            fi
             break
             ;;
         6)
