@@ -27,7 +27,6 @@ sudo apt install -y software-properties-common
 echo -e "${GREEN}System updated.${NC}"
 read -rp "Press Enter to continue..."
 
-
 # --- Step 2: Choose Desktop Environment
 echo -e "${BLUE}Step 2: Choose Desktop Environment:${NC}"
 PS3="Select an option: "
@@ -70,19 +69,16 @@ done
 echo -e "${GREEN}Desktop Environment set to $DE_NAME.${NC}"
 read -rp "Press Enter to continue..."
 
-
 # --- Step 3: Install TigerVNC
 echo -e "${BLUE}Step 3: Installing TigerVNC...${NC}"
 sudo apt install -y tigervnc-standalone-server tigervnc-tools
 echo -e "${GREEN}TigerVNC installed.${NC}"
 read -rp "Press Enter to continue..."
 
-
 # --- Step 4: Set VNC password
 echo -e "${BLUE}Step 4: Set VNC password for user $USER:${NC}"
 vncpasswd
 read -rp "Press Enter to continue..."
-
 
 # --- Step 5: Configure xstartup
 echo -e "${BLUE}Step 5: Configuring VNC session...${NC}"
@@ -101,7 +97,6 @@ chmod +x "$USER_HOME/.vnc/xstartup"
 echo -e "${GREEN}VNC xstartup configured.${NC}"
 read -rp "Press Enter to continue..."
 
-
 # --- Step 6: External access
 read -rp "Allow VNC connections from outside the VPS? (y/n) [n]: " ext_access
 if [[ "$ext_access" =~ ^[Yy]$ ]]; then
@@ -115,7 +110,6 @@ echo -e "${BLUE}Starting VNC server...${NC}"
 vncserver $VNC_DISPLAY -geometry 1920x1080 -depth 24 $LOCALHOST_ARG
 echo -e "${GREEN}VNC started on $VNC_DISPLAY (port $VNC_PORT).${NC}"
 read -rp "Press Enter to continue..."
-
 
 # --- Step 8: Optional systemd auto-start
 read -rp "Enable VNC to start automatically on boot? (y/n) [n]: " auto_start
@@ -142,7 +136,6 @@ sudo systemctl enable vncserver@1.service
 sudo systemctl start vncserver@1
 echo -e "${GREEN}Systemd service created and started.${NC}"
 fi
-
 
 echo -e "${BLUE}=== VNC Setup Complete ===${NC}"
 echo -e "${GREEN}Connect using VNC viewer: <VPS_IP>:$VNC_PORT${NC}"
