@@ -1,6 +1,6 @@
 #!/bin/bash
 # ================================
-# VNC Setup 1.1 - VNC & Desktop Installer with Optional DE Flavors
+# VNC Setup
 # Supports: GNOME, XFCE, LXDE, MATE, KDE, Cinnamon
 # ================================
 # MIT License
